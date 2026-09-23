@@ -1,7 +1,9 @@
 import { OrderStatus } from '../types';
+import { Language, translations } from '../i18n/translations';
 
 interface StatusBadgeProps {
   status: OrderStatus;
+  language?: Language;
 }
 
 const statusConfig: Record<OrderStatus, { bg: string; text: string; dot: string }> = {
@@ -11,12 +13,22 @@ const statusConfig: Record<OrderStatus, { bg: string; text: string; dot: string 
   Delivered: { bg: 'bg-blue-900/30 border-blue-600/50', text: 'text-blue-300', dot: 'bg-blue-400' },
 };
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
+const statusTranslationKeys: Record<OrderStatus, string> = {
+  Pending: 'pending',
+  'In Progress': 'inProgress',
+  Completed: 'completed',
+  Delivered: 'delivered',
+};
+
+export default function StatusBadge({ status, language = 'en' }: StatusBadgeProps) {
   const config = statusConfig[status];
+  const t = translations[language];
+  const translatedStatus = t[statusTranslationKeys[status] as keyof typeof t] || status;
+
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${config.bg} ${config.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${config.dot} animate-pulse`}></span>
-      {status}
+      {translatedStatus}
     </span>
   );
 }

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Order } from './types';
+import { Language, translations } from './i18n/translations';
 import { loadOrders, saveOrders } from './utils/storage';
+import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import OrderModal from './components/OrderModal';
-import StatusBadge from './components/StatusBadge';
 import {
   Plus,
   Search,
@@ -12,21 +13,64 @@ import {
   DollarSign,
   Clock,
   Shield,
+  LogOut,
+  Globe,
 } from 'lucide-react';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [language, setLanguage] = useState<Language>(() => {
+    return (localStorage.getItem('wolf_lsk_lang') as Language) || 'en';
+  });
 
+  // Check auth on mount
+  useEffect(() => {
+    const auth = localStorage.getItem('wolf_lsk_auth');
+    if (auth) {
+      try {
+        const parsed = JSON.parse(auth);
+        if (parsed.username) {
+          setIsAuthenticated(true);
+        }
+      } catch {
+        localStorage.removeItem('wolf_lsk_auth');
+      }
+    }
+  }, []);
+
+  // Load orders
   useEffect(() => {
     setOrders(loadOrders());
   }, []);
 
+  // Save orders
   useEffect(() => {
     saveOrders(orders);
   }, [orders]);
+
+  // Apply language direction
+  useEffect(() => {
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = language;
+    localStorage.setItem('wolf_lsk_lang', language);
+  }, [language]);
+
+  const toggleLanguage = () => {
+    setLanguage((prev) => (prev === 'en' ? 'ar' : 'en'));
+  };
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('wolf_lsk_auth');
+    setIsAuthenticated(false);
+  };
 
   const handleSaveOrder = (order: Order) => {
     setOrders((prev) => {
@@ -47,7 +91,8 @@ export default function App() {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this order?')) {
+    const t = translations[language];
+    if (window.confirm(t.deleteConfirm)) {
       setOrders((prev) => prev.filter((o) => o.id !== id));
     }
   };
@@ -57,11 +102,24 @@ export default function App() {
     setIsModalOpen(true);
   };
 
+  const t = translations[language];
+
   // Stats
   const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
   const totalRemaining = orders.reduce((sum, o) => sum + o.remainingBalance, 0);
   const activeOrders = orders.filter((o) => o.status === 'In Progress' || o.status === 'Pending').length;
   const totalClients = new Set(orders.map((o) => o.clientName)).size;
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Login
+        onLogin={handleLogin}
+        language={language}
+        onToggleLanguage={toggleLanguage}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -76,18 +134,41 @@ export default function App() {
               </div>
               <div>
                 <h1 className="text-base font-bold text-white tracking-tight">WOLF LSK</h1>
-                <p className="text-[10px] text-amber-400/80 font-medium uppercase tracking-widest -mt-0.5">Agency CRM</p>
+                <p className="text-[10px] text-amber-400/80 font-medium uppercase tracking-widest -mt-0.5">
+                  {t.dashboard}
+                </p>
               </div>
             </div>
 
-            {/* New Order Button */}
-            <button
-              onClick={handleNewOrder}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 rounded-lg text-gray-900 text-sm font-bold hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg shadow-amber-500/20 active:scale-95"
-            >
-              <Plus size={16} strokeWidth={3} />
-              <span className="hidden sm:inline">New Order</span>
-            </button>
+            {/* Right side controls */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Language Toggle */}
+              <button
+                onClick={toggleLanguage}
+                className="flex items-center gap-1.5 px-3 py-2 bg-gray-900/80 border border-gray-800 rounded-lg text-xs font-medium text-gray-300 hover:text-amber-400 hover:border-amber-500/30 transition-all"
+              >
+                <Globe size={14} />
+                <span>{language === 'en' ? 'AR' : 'EN'}</span>
+              </button>
+
+              {/* Logout */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-2 bg-gray-900/80 border border-gray-800 rounded-lg text-xs font-medium text-gray-300 hover:text-red-400 hover:border-red-500/30 transition-all"
+              >
+                <LogOut size={14} />
+                <span className="hidden sm:inline">{t.logout}</span>
+              </button>
+
+              {/* New Order Button */}
+              <button
+                onClick={handleNewOrder}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 rounded-lg text-gray-900 text-sm font-bold hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg shadow-amber-500/20 active:scale-95"
+              >
+                <Plus size={16} strokeWidth={3} />
+                <span className="hidden sm:inline">{t.newOrder}</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -102,7 +183,7 @@ export default function App() {
                 <DollarSign size={16} className="text-amber-400" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mb-0.5">Total Revenue</p>
+            <p className="text-xs text-gray-500 mb-0.5">{t.totalRevenue}</p>
             <p className="text-lg sm:text-xl font-bold text-white">
               ${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </p>
@@ -114,7 +195,7 @@ export default function App() {
                 <TrendingUp size={16} className="text-red-400" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mb-0.5">Outstanding</p>
+            <p className="text-xs text-gray-500 mb-0.5">{t.outstanding}</p>
             <p className="text-lg sm:text-xl font-bold text-amber-400">
               ${totalRemaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </p>
@@ -126,7 +207,7 @@ export default function App() {
                 <Clock size={16} className="text-blue-400" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mb-0.5">Active Orders</p>
+            <p className="text-xs text-gray-500 mb-0.5">{t.activeOrders}</p>
             <p className="text-lg sm:text-xl font-bold text-white">{activeOrders}</p>
           </div>
 
@@ -136,7 +217,7 @@ export default function App() {
                 <Users size={16} className="text-emerald-400" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mb-0.5">Total Clients</p>
+            <p className="text-xs text-gray-500 mb-0.5">{t.totalClients}</p>
             <p className="text-lg sm:text-xl font-bold text-white">{totalClients}</p>
           </div>
         </div>
@@ -144,18 +225,18 @@ export default function App() {
         {/* Search & Filter Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+            <Search size={16} className={`absolute top-1/2 -translate-y-1/2 text-gray-500 ${language === 'ar' ? 'right-3.5' : 'left-3.5'}`} />
             <input
               type="text"
-              placeholder="Search by client name, phone, or service..."
+              placeholder={t.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-gray-800 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-amber-500/40 focus:ring-1 focus:ring-amber-500/20 transition-all"
+              className={`w-full py-2.5 bg-gray-900/50 border border-gray-800 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-amber-500/40 focus:ring-1 focus:ring-amber-500/20 transition-all ${language === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'}`}
             />
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <span className="px-3 py-2 bg-gray-900/50 border border-gray-800 rounded-xl">
-              {orders.length} order{orders.length !== 1 ? 's' : ''}
+              {orders.length} {t.orders}
             </span>
           </div>
         </div>
@@ -164,18 +245,13 @@ export default function App() {
         <div className="bg-gray-900/30 border border-gray-800/50 rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800/50 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-white">All Orders</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Manage your client projects and payments</p>
-            </div>
-            <div className="hidden sm:flex items-center gap-2">
-              <StatusBadge status="Pending" />
-              <StatusBadge status="In Progress" />
-              <StatusBadge status="Completed" />
+              <h2 className="text-sm font-semibold text-white">{t.dashboard}</h2>
             </div>
           </div>
           <Dashboard
             orders={orders}
             searchQuery={searchQuery}
+            language={language}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
@@ -183,12 +259,8 @@ export default function App() {
 
         {/* Footer */}
         <footer className="mt-12 pb-6 text-center">
-          <p className="text-xs text-gray-600">
-            © 2024 WOLF LSK Agency — Client & Order Management System
-          </p>
-          <p className="text-[10px] text-gray-700 mt-1">
-            Data stored locally in your browser
-          </p>
+          <p className="text-xs text-gray-600">{t.footerText}</p>
+          <p className="text-[10px] text-gray-700 mt-1">{t.dataStored}</p>
         </footer>
       </main>
 
@@ -201,6 +273,7 @@ export default function App() {
         }}
         onSave={handleSaveOrder}
         editOrder={editingOrder}
+        language={language}
       />
     </div>
   );

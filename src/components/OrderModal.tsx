@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Order, ServiceType, OrderStatus } from '../types';
+import { Language, translations } from '../i18n/translations';
 import { X } from 'lucide-react';
 
 interface OrderModalProps {
@@ -7,9 +8,10 @@ interface OrderModalProps {
   onClose: () => void;
   onSave: (order: Order) => void;
   editOrder?: Order | null;
+  language?: Language;
 }
 
-const services: ServiceType[] = [
+const serviceKeys: ServiceType[] = [
   'Web Development',
   'Commercial Marketing',
   'Ad Campaign Management',
@@ -19,9 +21,28 @@ const services: ServiceType[] = [
   'Other',
 ];
 
-const statuses: OrderStatus[] = ['Pending', 'In Progress', 'Completed', 'Delivered'];
+const serviceTranslationKeys: Record<ServiceType, string> = {
+  'Web Development': 'webDev',
+  'Commercial Marketing': 'commercialMarketing',
+  'Ad Campaign Management': 'adCampaign',
+  'SEO & Site Audit': 'seoAudit',
+  'Design & Branding': 'designBranding',
+  'AI Promotional Videos': 'aiVideos',
+  'Other': 'other',
+};
 
-export default function OrderModal({ isOpen, onClose, onSave, editOrder }: OrderModalProps) {
+const statusKeys: OrderStatus[] = ['Pending', 'In Progress', 'Completed', 'Delivered'];
+
+const statusTranslationKeys: Record<OrderStatus, string> = {
+  Pending: 'pending',
+  'In Progress': 'inProgress',
+  Completed: 'completed',
+  Delivered: 'delivered',
+};
+
+export default function OrderModal({ isOpen, onClose, onSave, editOrder, language = 'en' }: OrderModalProps) {
+  const t = translations[language];
+
   const [formData, setFormData] = useState({
     clientName: '',
     phoneNumber: '',
@@ -104,10 +125,10 @@ export default function OrderModal({ isOpen, onClose, onSave, editOrder }: Order
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-gray-900/95 backdrop-blur border-b border-amber-500/10 rounded-t-2xl">
           <div>
             <h2 className="text-xl font-bold text-white">
-              {editOrder ? 'Edit Order' : 'New Order'}
+              {editOrder ? t.editOrderTitle : t.newOrderTitle}
             </h2>
             <p className="text-sm text-gray-400 mt-0.5">
-              {editOrder ? 'Update the order details below' : 'Fill in the client and project details'}
+              {editOrder ? t.editOrderDesc : t.newOrderDesc}
             </p>
           </div>
           <button
@@ -124,22 +145,22 @@ export default function OrderModal({ isOpen, onClose, onSave, editOrder }: Order
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-2">
               <span className="w-8 h-[1px] bg-amber-500/50"></span>
-              Client Information
+              {t.clientInfo}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Client Name *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.clientName} *</label>
                 <input
                   type="text"
                   required
                   value={formData.clientName}
                   onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
                   className="w-full px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all"
-                  placeholder="John Doe"
+                  placeholder={language === 'en' ? 'John Doe' : 'أحمد محمد'}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Phone Number *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.phoneNumber} *</label>
                 <input
                   type="tel"
                   required
@@ -156,32 +177,34 @@ export default function OrderModal({ isOpen, onClose, onSave, editOrder }: Order
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-2">
               <span className="w-8 h-[1px] bg-amber-500/50"></span>
-              Service Details
+              {t.serviceDetails}
             </h3>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Service Requested *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.serviceRequested} *</label>
               <select
                 value={formData.service}
                 onChange={(e) => setFormData({ ...formData, service: e.target.value as ServiceType })}
                 className="w-full px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all"
               >
-                {services.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                {serviceKeys.map((s) => (
+                  <option key={s} value={s}>
+                    {t[serviceTranslationKeys[s] as keyof typeof t]}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Project Description</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.projectDescription}</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 className="w-full px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all resize-none"
-                placeholder="Describe the project scope, requirements, and deliverables..."
+                placeholder={t.projectDescPlaceholder}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Delivery Date *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.deliveryDateLabel} *</label>
               <input
                 type="date"
                 required
@@ -196,11 +219,11 @@ export default function OrderModal({ isOpen, onClose, onSave, editOrder }: Order
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-2">
               <span className="w-8 h-[1px] bg-amber-500/50"></span>
-              Financial Details
+              {t.financialDetails}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Total Amount ($) *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.totalAmount} *</label>
                 <input
                   type="number"
                   required
@@ -213,7 +236,7 @@ export default function OrderModal({ isOpen, onClose, onSave, editOrder }: Order
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">First Payment / Deposit ($) *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.firstPayment} *</label>
                 <input
                   type="number"
                   required
@@ -231,8 +254,8 @@ export default function OrderModal({ isOpen, onClose, onSave, editOrder }: Order
             <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-400">Remaining Balance</p>
-                  <p className="text-xs text-gray-500">Auto-calculated: Total - First Payment</p>
+                  <p className="text-sm text-gray-400">{t.remainingBalanceLabel}</p>
+                  <p className="text-xs text-gray-500">{t.autoCalc}</p>
                 </div>
                 <p className="text-2xl font-bold text-amber-400">
                   ${remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -242,7 +265,7 @@ export default function OrderModal({ isOpen, onClose, onSave, editOrder }: Order
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Date of First Payment</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.dateOfFirstPayment}</label>
                 <input
                   type="date"
                   value={formData.firstPaymentDate}
@@ -251,7 +274,7 @@ export default function OrderModal({ isOpen, onClose, onSave, editOrder }: Order
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Remaining Balance Due Date</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.secondPaymentDue}</label>
                 <input
                   type="date"
                   value={formData.secondPaymentDate}
@@ -266,17 +289,19 @@ export default function OrderModal({ isOpen, onClose, onSave, editOrder }: Order
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-2">
               <span className="w-8 h-[1px] bg-amber-500/50"></span>
-              Order Status
+              {t.orderStatus}
             </h3>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Status</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.statusLabel}</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as OrderStatus })}
                 className="w-full px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all"
               >
-                {statuses.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                {statusKeys.map((s) => (
+                  <option key={s} value={s}>
+                    {t[statusTranslationKeys[s] as keyof typeof t]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -289,13 +314,13 @@ export default function OrderModal({ isOpen, onClose, onSave, editOrder }: Order
               onClick={onClose}
               className="flex-1 px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 font-medium hover:bg-gray-700 transition-colors"
             >
-              Cancel
+              {t.cancel}
             </button>
             <button
               type="submit"
               className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 rounded-lg text-gray-900 font-bold hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg shadow-amber-500/20"
             >
-              {editOrder ? 'Update Order' : 'Create Order'}
+              {editOrder ? t.updateOrder : t.createOrder}
             </button>
           </div>
         </form>
