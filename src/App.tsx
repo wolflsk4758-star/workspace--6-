@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Order } from './types';
 import { Language, translations } from './i18n/translations';
-import { loadOrders, saveOrders } from './utils/storage';
+import { saveOrders, subscribeToOrders } from './utils/storage';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import OrderModal from './components/OrderModal';
@@ -42,15 +42,13 @@ export default function App() {
     }
   }, []);
 
-  // Load orders
+  // جلب الفواتير فورياً من قاعدة البيانات السحابية (Real-time sync)
   useEffect(() => {
-    setOrders(loadOrders());
+    const unsubscribe = subscribeToOrders((liveOrders) => {
+      setOrders(liveOrders);
+    });
+    return () => unsubscribe();
   }, []);
-
-  // Save orders
-  useEffect(() => {
-    saveOrders(orders);
-  }, [orders]);
 
   // Apply language direction
   useEffect(() => {
@@ -74,13 +72,16 @@ export default function App() {
 
   const handleSaveOrder = (order: Order) => {
     setOrders((prev) => {
+      let updatedOrders;
       const existing = prev.findIndex((o) => o.id === order.id);
       if (existing >= 0) {
-        const updated = [...prev];
-        updated[existing] = order;
-        return updated;
+        updatedOrders = [...prev];
+        updatedOrders[existing] = order;
+      } else {
+        updatedOrders = [order, ...prev];
       }
-      return [order, ...prev];
+      saveOrders(updatedOrders);
+      return updatedOrders;
     });
     setEditingOrder(null);
   };
@@ -93,7 +94,11 @@ export default function App() {
   const handleDelete = (id: string) => {
     const t = translations[language];
     if (window.confirm(t.deleteConfirm)) {
-      setOrders((prev) => prev.filter((o) => o.id !== id));
+      setOrders((prev) => {
+        const updatedOrders = prev.filter((o) => o.id !== id);
+        saveOrders(updatedOrders);
+        return updatedOrders;
+      });
     }
   };
 
