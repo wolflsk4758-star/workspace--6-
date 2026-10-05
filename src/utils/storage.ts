@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { db } from './firebase';
+import { db } from '../firebase';
 import { Order } from '../types';
 
 // حفظ الفواتير في قاعدة البيانات السحابية
