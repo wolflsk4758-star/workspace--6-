@@ -1,7 +1,15 @@
 import { Order } from '../types';
 import { Language, translations } from '../i18n/translations';
-import StatusBadge from './StatusBadge';
-import { Edit2, Trash2, Calendar, FileText } from 'lucide-react';
+import {
+  Edit2,
+  Trash2,
+  Calendar,
+  FileText,
+  Loader2,
+  CheckCircle2,
+  Send,
+  Clock,
+} from 'lucide-react';
 import { generateInvoicePDF } from '../utils/pdfGenerator';
 
 interface DashboardProps {
@@ -12,7 +20,61 @@ interface DashboardProps {
   onDelete: (id: string) => void;
 }
 
-export default function Dashboard({ orders, searchQuery, language, onEdit, onDelete }: DashboardProps) {
+// مكون الحالات المتحركة (أنيميشن خاص لكل حالة)
+function AnimatedStatusBadge({ status, language }: { status: string; language: Language }) {
+  const isAr = language === 'ar';
+
+  // 1. قيد التنفيذ (In Progress) — حركة رادار متوهج + دوران مستمر يجذب النظر
+  if (status === 'In Progress') {
+    return (
+      <span className="relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-amber-500/15 text-amber-300 border border-amber-400/60 shadow-[0_0_18px_rgba(245,158,11,0.35)] animate-pulse">
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-90"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400"></span>
+        </span>
+        <Loader2 size={13} className="animate-spin text-amber-400" />
+        <span>{isAr ? 'قيد التنفيذ' : 'In Progress'}</span>
+      </span>
+    );
+  }
+
+  // 2. مكتمل (Completed) — إضاءة خضراء صافية مع بريق هادئ يدل على الإنجاز
+  if (status === 'Completed') {
+    return (
+      <span className="relative overflow-hidden inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-all">
+        <span className=" status-shimmer-bar " />
+        <CheckCircle2 size={14} className="text-emerald-400 shrink-0 status-completed-icon" />
+        <span>{isAr ? 'مكتمل ✓' : 'Completed'}</span>
+      </span>
+    );
+  }
+
+  // 3. تم التسليم (Delivered) — لون أزرق سماوي مع حركة سهم تسليم انسيابية
+  if (status === 'Delivered') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-sky-500/15 text-sky-300 border border-sky-500/40 shadow-[0_0_12px_rgba(14,165,233,0.2)]">
+        <Send size={13} className="text-sky-400 shrink-0 status-delivered-icon" />
+        <span>{isAr ? 'تم التسليم' : 'Delivered'}</span>
+      </span>
+    );
+  }
+
+  // 4. قيد الانتظار (Pending) أو أي حالة أخرى
+  return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300 border border-gray-700">
+      <Clock size={13} className="text-gray-400 animate-pulse" />
+      <span>{isAr ? 'قيد الانتظار' : status}</span>
+    </span>
+  );
+}
+
+export default function Dashboard({
+  orders,
+  searchQuery,
+  language,
+  onEdit,
+  onDelete,
+}: DashboardProps) {
   const t = translations[language];
 
   const filteredOrders = orders.filter((order) => {
@@ -58,18 +120,62 @@ export default function Dashboard({ orders, searchQuery, language, onEdit, onDel
 
   return (
     <div className="space-y-4">
+      {/* حركات CSS المخصصة للحالات */}
+      <style>{`
+        @keyframes shimmerSweep {
+          0% { transform: translateX(-150%) skewX(-20deg); }
+          50%, 100% { transform: translateX(250%) skewX(-20deg); }
+        }
+        @keyframes completedBounce {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.16); }
+        }
+        @keyframes deliveredFloat {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(2px, -2px); }
+        }
+        .status-shimmer-bar {
+          position: absolute;
+          inset: 0;
+          width: 45%;
+          background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.22), transparent);
+          animation: shimmerSweep 3.5s infinite ease-in-out;
+          pointer-events: none;
+        }
+        .status-completed-icon {
+          animation: completedBounce 2.4s infinite ease-in-out;
+        }
+        .status-delivered-icon {
+          animation: deliveredFloat 2s infinite ease-in-out;
+        }
+      `}</style>
+
       {/* Desktop Table */}
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-800">
-              <th className="text-start py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t.client}</th>
-              <th className="text-start py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t.service}</th>
-              <th className="text-start py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t.deliveryDate}</th>
-              <th className="text-end py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t.total}</th>
-              <th className="text-end py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t.remaining}</th>
-              <th className="text-center py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t.status}</th>
-              <th className="text-end py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t.actions}</th>
+              <th className="text-start py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t.client}
+              </th>
+              <th className="text-start py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t.service}
+              </th>
+              <th className="text-start py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t.deliveryDate}
+              </th>
+              <th className="text-end py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t.total}
+              </th>
+              <th className="text-end py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t.remaining}
+              </th>
+              <th className="text-center py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t.status}
+              </th>
+              <th className="text-end py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t.actions}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800/50">
@@ -82,114 +188,4 @@ export default function Dashboard({ orders, searchQuery, language, onEdit, onDel
                   </div>
                 </td>
                 <td className="py-4 px-4">
-                  <span className="text-sm text-gray-300">{order.service}</span>
-                </td>
-                <td className="py-4 px-4">
-                  <div className="flex items-center gap-1.5 text-sm text-gray-400">
-                    <Calendar size={14} className="text-gray-500" />
-                    {new Date(order.deliveryDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
-                </td>
-                <td className="py-4 px-4 text-end">
-                  <span className="text-sm font-medium text-white">
-                    ${order.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </span>
-                </td>
-                <td className="py-4 px-4 text-end">
-                  <span className={`text-sm font-semibold ${order.remainingBalance > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                    ${order.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </span>
-                </td>
-                <td className="py-4 px-4 text-center">
-                  <StatusBadge status={order.status} language={language} />
-                </td>
-                <td className="py-4 px-4 text-end">
-                  <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handlePrintPDF(order)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-blue-400 hover:bg-blue-400/10 transition-all"
-                      title={t.printPdf}
-                    >
-                      <FileText size={15} />
-                    </button>
-                    <button
-                      onClick={() => onEdit(order)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-amber-400 hover:bg-amber-400/10 transition-all"
-                      title={t.edit}
-                    >
-                      <Edit2 size={15} />
-                    </button>
-                    <button
-                      onClick={() => onDelete(order.id)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                      title={t.delete}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile Cards */}
-      <div className="lg:hidden space-y-3">
-        {filteredOrders.map((order) => (
-          <div
-            key={order.id}
-            className="p-4 bg-gray-800/30 border border-gray-700/50 rounded-xl hover:border-amber-500/20 transition-all"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <p className="text-sm font-semibold text-white">{order.clientName}</p>
-                <p className="text-xs text-gray-500">{order.phoneNumber}</p>
-              </div>
-              <StatusBadge status={order.status} language={language} />
-            </div>
-            <div className="space-y-2 mb-3">
-              <p className="text-xs text-gray-400">
-                <span className="text-gray-500">{t.service}:</span> {order.service}
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                  <Calendar size={12} />
-                  {new Date(order.deliveryDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
-                </div>
-                <div className="text-xs text-white font-medium">
-                  ${order.totalAmount.toLocaleString()}
-                </div>
-              </div>
-              {order.remainingBalance > 0 && (
-                <p className="text-xs text-amber-400 font-medium">
-                  {t.remaining}: ${order.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-2 pt-2 border-t border-gray-700/50">
-              <button
-                onClick={() => handlePrintPDF(order)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-300 hover:text-blue-400 hover:bg-blue-400/5 rounded-lg transition-all"
-              >
-                <FileText size={13} /> PDF
-              </button>
-              <button
-                onClick={() => onEdit(order)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-300 hover:text-amber-400 hover:bg-amber-400/5 rounded-lg transition-all"
-              >
-                <Edit2 size={13} /> {t.edit}
-              </button>
-              <button
-                onClick={() => onDelete(order.id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-300 hover:text-red-400 hover:bg-red-400/5 rounded-lg transition-all"
-              >
-                <Trash2 size={13} /> {t.delete}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+                  <span className="text-sm
