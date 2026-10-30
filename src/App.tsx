@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import type { FormEvent, ChangeEvent } from 'react';
 import { Order } from './types';
 import { Language, translations } from './i18n/translations';
 import {
@@ -45,13 +46,11 @@ export default function App() {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
 
-  // Login form state
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPass, setShowLoginPass] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // Staff management state
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
@@ -67,7 +66,6 @@ export default function App() {
     return (localStorage.getItem('wolf_lsk_lang') as Language) || 'en';
   });
 
-  // جلب الفواتير فورياً من قاعدة البيانات السحابية
   useEffect(() => {
     const unsubscribe = subscribeToOrders((liveOrders) => {
       setOrders(liveOrders);
@@ -75,13 +73,11 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // جلب حسابات المستخدمين واللوغو فورياً من الفايربيس
   useEffect(() => {
     const unsubscribe = subscribeToAppSettings((settings) => {
       setLogoUrl(settings.logoUrl || DEFAULT_LOGO);
       setUsers(settings.users && settings.users.length > 0 ? settings.users : DEFAULT_USERS);
 
-      // التحقق من الجلسة المحفوظة
       const savedAuth = localStorage.getItem('wolf_lsk_auth');
       if (savedAuth) {
         try {
@@ -100,7 +96,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Apply language direction
   useEffect(() => {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
@@ -111,7 +106,7 @@ export default function App() {
     setLanguage((prev) => (prev === 'en' ? 'ar' : 'en'));
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = (e: FormEvent) => {
     e.preventDefault();
     const found = users.find(
       (u) =>
@@ -138,8 +133,7 @@ export default function App() {
     setCurrentUser(null);
   };
 
-  // رفع صورة اللوغو وحفظها في الفايربيس
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -153,8 +147,7 @@ export default function App() {
     reader.readAsDataURL(file);
   };
 
-  // إضافة موظف أو حساب جديد
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = (e: FormEvent) => {
     e.preventDefault();
     if (!newUsername.trim() || !newPassword.trim() || !newDisplayName.trim()) return;
     if (users.some((u) => u.username.toLowerCase() === newUsername.trim().toLowerCase())) {
@@ -178,7 +171,6 @@ export default function App() {
     setNewRole('staff');
   };
 
-  // حفظ تعديل اليوزر أو الباسورد لأي حساب
   const handleSaveCredentials = (userId: string) => {
     if (!editUsernameVal.trim() || !editPasswordVal.trim()) return;
     const updatedUsers = users.map((u) =>
@@ -258,14 +250,12 @@ export default function App() {
 
   const t = translations[language];
 
-  // إحصائيات المدير الرئيسي فقط
   const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
   const totalRemaining = orders.reduce((sum, o) => sum + o.remainingBalance, 0);
   const totalCollected = Math.max(0, totalRevenue - totalRemaining);
   const activeOrders = orders.filter((o) => o.status === 'In Progress' || o.status === 'Pending').length;
   const totalClients = new Set(orders.map((o) => o.clientName)).size;
 
-  // شاشة تسجيل الدخول (بدون إظهار أي يوزر أو باسورد، ومع اللوغو الجديد)
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-[#030712] text-white flex flex-col justify-between relative overflow-hidden">
@@ -367,7 +357,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      {/* Input مخفي لرفع اللوغو للمدير */}
       <input
         ref={logoInputRef}
         type="file"
@@ -376,11 +365,9 @@ export default function App() {
         className="hidden"
       />
 
-      {/* Header */}
       <header className="sticky top-0 z-40 bg-gray-950/80 backdrop-blur-xl border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Brand Logo */}
             <div className="flex items-center gap-3">
               <div
                 onClick={() => currentUser.role === 'admin' && logoInputRef.current?.click()}
@@ -416,9 +403,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right side controls */}
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* زر إدارة الحسابات واللوغو للمدير فقط */}
               {currentUser.role === 'admin' && (
                 <button
                   onClick={() => setIsStaffModalOpen(true)}
@@ -431,7 +416,6 @@ export default function App() {
                 </button>
               )}
 
-              {/* Language Toggle */}
               <button
                 onClick={toggleLanguage}
                 className="flex items-center gap-1.5 px-3 py-2 bg-gray-900/80 border border-gray-800 rounded-lg text-xs font-medium text-gray-300 hover:text-amber-400 hover:border-amber-500/30 transition-all"
@@ -440,7 +424,6 @@ export default function App() {
                 <span>{language === 'en' ? 'AR' : 'EN'}</span>
               </button>
 
-              {/* Logout */}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 px-3 py-2 bg-gray-900/80 border border-gray-800 rounded-lg text-xs font-medium text-gray-300 hover:text-red-400 hover:border-red-500/30 transition-all"
@@ -449,7 +432,6 @@ export default function App() {
                 <span className="hidden sm:inline">{t.logout}</span>
               </button>
 
-              {/* New Order Button */}
               <button
                 onClick={handleNewOrder}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 rounded-lg text-gray-900 text-sm font-bold hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg shadow-amber-500/20 active:scale-95"
@@ -462,9 +444,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* قسم الملخص المالي والمدخولات — يظهر لحسابك الرئيسي (المدير) فقط ويختفي عن الموظف */}
         {currentUser.role === 'admin' ? (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
@@ -479,7 +459,6 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-              {/* إجمالي مجموع الفواتير */}
               <div className="p-4 sm:p-5 bg-gradient-to-br from-gray-900 to-gray-900/50 border border-amber-500/25 rounded-xl hover:border-amber-500/40 transition-all">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
@@ -494,7 +473,6 @@ export default function App() {
                 </p>
               </div>
 
-              {/* صافي المدخولات المقبوضة */}
               <div className="p-4 sm:p-5 bg-gradient-to-br from-gray-900 to-gray-900/50 border border-emerald-500/25 rounded-xl hover:border-emerald-500/40 transition-all">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
@@ -509,7 +487,6 @@ export default function App() {
                 </p>
               </div>
 
-              {/* الذمم المتبقية */}
               <div className="p-4 sm:p-5 bg-gradient-to-br from-gray-900 to-gray-900/50 border border-gray-800/50 rounded-xl hover:border-amber-500/20 transition-all">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
@@ -522,7 +499,6 @@ export default function App() {
                 </p>
               </div>
 
-              {/* الطلبات النشطة */}
               <div className="p-4 sm:p-5 bg-gradient-to-br from-gray-900 to-gray-900/50 border border-gray-800/50 rounded-xl hover:border-amber-500/20 transition-all">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -533,7 +509,6 @@ export default function App() {
                 <p className="text-lg sm:text-xl font-bold text-white">{activeOrders}</p>
               </div>
 
-              {/* إجمالي العملاء */}
               <div className="p-4 sm:p-5 bg-gradient-to-br from-gray-900 to-gray-900/50 border border-gray-800/50 rounded-xl hover:border-amber-500/20 transition-all">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
@@ -546,7 +521,6 @@ export default function App() {
             </div>
           </div>
         ) : (
-          /* شريط خاص بالموظف بدون أي تفاصيل عن مجموع الفواتير أو المدخولات */
           <div className="mb-6 p-4 bg-gray-900/50 border border-gray-800/80 rounded-2xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
@@ -568,7 +542,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Search & Filter Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
           <div className="relative flex-1">
             <Search
@@ -594,7 +567,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Dashboard Table */}
         <div className="bg-gray-900/30 border border-gray-800/50 rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800/50 flex items-center justify-between">
             <div>
@@ -610,14 +582,12 @@ export default function App() {
           />
         </div>
 
-        {/* Footer */}
         <footer className="mt-12 pb-6 text-center">
           <p className="text-xs text-gray-600">{t.footerText}</p>
           <p className="text-[10px] text-gray-700 mt-1">{t.dataStored}</p>
         </footer>
       </main>
 
-      {/* Order Modal */}
       <OrderModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -629,7 +599,6 @@ export default function App() {
         language={language}
       />
 
-      {/* نافذة إدارة حسابات الموظفين واللوغو (تظهر للمدير الرئيسي فقط) */}
       {isStaffModalOpen && currentUser.role === 'admin' && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8">
@@ -651,7 +620,6 @@ export default function App() {
             </div>
 
             <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-              {/* قسم تغيير اللوغو */}
               <div className="p-4 bg-gray-950/80 border border-gray-800 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
                   <img
@@ -680,7 +648,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* نموذج إنشاء حساب موظف جديد */}
               <form
                 onSubmit={handleCreateUser}
                 className="p-4 bg-gray-950/60 border border-gray-800 rounded-xl space-y-4"
@@ -759,7 +726,6 @@ export default function App() {
                 </button>
               </form>
 
-              {/* قائمة الحسابات الحالية وتعديل كلمات المرور */}
               <div className="space-y-2.5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">
                   {language === 'ar'
